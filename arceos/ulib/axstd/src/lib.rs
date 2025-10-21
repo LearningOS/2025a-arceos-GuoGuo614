@@ -59,6 +59,8 @@ pub mod collections;
 #[cfg(feature = "alloc")]
 #[doc(no_inline)]
 pub use alloc::{boxed, collections as alloc_collections, format, string, vec};
+
+#[cfg(feature = "alloc")]
 pub use collections::*;
 
 #[doc(no_inline)]
