@@ -61,10 +61,18 @@ pub mod paging;
 /// Console input and output.
 pub mod console {
     pub use super::platform::console::*;
+    const FRONT: &[u8] = "\x1b[34m".as_bytes();
+    const BACK: &[u8] = "\x1b[0m".as_bytes();
 
     /// Write a slice of bytes to the console.
     pub fn write_bytes(bytes: &[u8]) {
+        for c in FRONT {
+            putchar(*c);
+        }
         for c in bytes {
+            putchar(*c);
+        }
+        for c in BACK {
             putchar(*c);
         }
     }
