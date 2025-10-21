@@ -54,8 +54,12 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
+pub mod collections;
+
+#[cfg(feature = "alloc")]
 #[doc(no_inline)]
-pub use alloc::{boxed, collections, format, string, vec};
+pub use alloc::{boxed, collections as alloc_collections, format, string, vec};
+pub use collections::*;
 
 #[doc(no_inline)]
 pub use core::{arch, cell, cmp, hint, marker, mem, ops, ptr, slice, str};

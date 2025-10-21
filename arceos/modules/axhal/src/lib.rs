@@ -66,15 +66,15 @@ pub mod console {
 
     /// Write a slice of bytes to the console.
     pub fn write_bytes(bytes: &[u8]) {
-        for c in FRONT {
-            putchar(*c);
-        }
+        // for c in FRONT {
+        //     putchar(*c);
+        // }
         for c in bytes {
             putchar(*c);
         }
-        for c in BACK {
-            putchar(*c);
-        }
+        // for c in BACK {
+        //     putchar(*c);
+        // }
     }
 }
 
