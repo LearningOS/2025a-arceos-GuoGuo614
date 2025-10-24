@@ -165,7 +165,43 @@ impl VfsNodeOps for DirNode {
         }
     }
 
-    axfs_vfs::impl_vfs_dir_default! {}
+    fn rename(&self, src_path: &str, dst_path: &str) -> VfsResult {
+        log::debug!("rename at ramfs: {:?} -> {:?}", src_path, dst_path);
+
+        let src_name = src_path.trim_start_matches('/');
+        if src_name.is_empty() || src_name == "." || src_name == ".." || src_name.contains('/') {
+            return Err(VfsError::InvalidInput);
+        }
+
+        let (_, dst_name) = split_parent_name(dst_path);
+        if dst_name.is_empty() || dst_name == "." || dst_name == ".." {
+            return Err(VfsError::InvalidInput);
+        }
+
+        let parent_node = self.this.upgrade().unwrap() as VfsNodeRef;
+        let parent_dir = parent_node
+            .as_any()
+            .downcast_ref::<DirNode>()
+            .ok_or(VfsError::NotADirectory)?;
+
+        let node = {
+            let mut ch = self.children.write();
+            ch.remove(src_name).ok_or(VfsError::NotFound)?
+        };
+
+        // if let Some(moved_dir) = node.as_any().downcast_ref::<DirNode>() {
+        //     let dst_ref: VfsNodeRef = parent_dir.this.upgrade().unwrap();
+        //     moved_dir.set_parent(Some(&dst_ref));
+        // }
+
+        parent_dir.children.write().insert(String::from(dst_name), node);
+
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
 }
 
 fn split_path(path: &str) -> (&str, Option<&str>) {
@@ -173,4 +209,15 @@ fn split_path(path: &str) -> (&str, Option<&str>) {
     trimmed_path.find('/').map_or((trimmed_path, None), |n| {
         (&trimmed_path[..n], Some(&trimmed_path[n + 1..]))
     })
+}
+
+fn split_parent_name(path: &str) -> (Option<&str>, &str) {
+    let p = path.trim_start_matches('/');
+    if let Some(i) = p.rfind('/') {
+        let parent = &p[..i];
+        let name = &p[i + 1..];
+        (if parent.is_empty() { None } else { Some(parent) }, name)
+    } else {
+        (None, p)
+    }
 }

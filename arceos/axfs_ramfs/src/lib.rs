@@ -42,6 +42,7 @@ impl RamFileSystem {
 
 impl VfsOps for RamFileSystem {
     fn mount(&self, _path: &str, mount_point: VfsNodeRef) -> VfsResult {
+        log::info!("ramfs mounted on {:?}", mount_point.get_attr().ok().map(|a| a.file_type()));
         if let Some(parent) = mount_point.parent() {
             self.root.set_parent(Some(self.parent.call_once(|| parent)));
         } else {
