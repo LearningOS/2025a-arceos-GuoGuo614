@@ -27,6 +27,8 @@ const CMD_TABLE: &[(&str, CmdHandler)] = &[
     ("pwd", do_pwd),
     ("rm", do_rm),
     ("uname", do_uname),
+    ("rename", do_rename),
+    ("mv", do_mv),
 ];
 
 fn file_type_to_char(ty: FileType) -> char {
@@ -270,6 +272,59 @@ fn do_help(_args: &str) {
 fn do_exit(_args: &str) {
     println!("Bye~");
     std::process::exit(0);
+}
+
+fn do_rename(args: &str) {
+    let mut parts = args.split_whitespace();
+    let src = parts.next();
+    let dst = parts.next();
+
+    if src.is_none() || dst.is_none() {
+        print_err!("rename", "missing source or destination");
+    } else if parts.next().is_some() {
+        print_err!("rename", "too many arguments");
+    }
+
+    let src = src.unwrap();
+    let dst = dst.unwrap();
+
+    if let Err(e) = fs::rename(src, dst) {
+        print_err!("rename", format_args!("cannot rename '{src}' to '{dst}'"), e);
+    }
+}
+
+fn do_mv(args: &str) {
+    let mut parts = args.split_whitespace();
+    let src = parts.next();
+    let dst = parts.next();
+
+    match (src, dst, parts.next()) {
+        (Some(src), Some(dst), None) => {
+            if let Err(e) = move_file(src, dst) {
+                print_err!("mv", format_args!("cannot move '{src}' to '{dst}'"), e);
+            }
+        }
+        (None, _, _) => print_err!("mv", "missing source"),
+        (_, None, _) => print_err!("mv", "missing destination"),
+        _ => print_err!("mv", "too many arguments"),
+    }
+}
+
+fn move_file(src: &str, dst: &str) -> io::Result<()> {
+    let mut src_file = File::open(src)?;
+    let mut dst_file = File::create(dst)?;
+
+    let mut buf = [0; 1024];
+    loop {
+        let n = src_file.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        dst_file.write_all(&buf[..n])?;
+    }
+
+    fs::remove_file(src)?;
+    Ok(())
 }
 
 pub fn run_cmd(line: &[u8]) {
