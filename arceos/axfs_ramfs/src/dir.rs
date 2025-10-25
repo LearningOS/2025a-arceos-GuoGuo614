@@ -165,10 +165,12 @@ impl VfsNodeOps for DirNode {
         }
     }
 
-    fn rename(&self, src_path: &str, dst_path: &str) -> VfsResult {
-        log::debug!("rename at ramfs: {:?} -> {:?}", src_path, dst_path);
+    fn rename(&self, src_name: &str, dst_path: &str) -> VfsResult {
+        // We assume that src_path is dir_name, while dst_path is an absolute path or dir_name.
+        // And self is parent_dir of target dir.
+        log::debug!("rename at ramfs: {:?} -> {:?}", src_name, dst_path);
 
-        let src_name = src_path.trim_start_matches('/');
+        let src_name = src_name.trim_start_matches('/');
         if src_name.is_empty() || src_name == "." || src_name == ".." || src_name.contains('/') {
             return Err(VfsError::InvalidInput);
         }
@@ -188,11 +190,6 @@ impl VfsNodeOps for DirNode {
             let mut ch = self.children.write();
             ch.remove(src_name).ok_or(VfsError::NotFound)?
         };
-
-        // if let Some(moved_dir) = node.as_any().downcast_ref::<DirNode>() {
-        //     let dst_ref: VfsNodeRef = parent_dir.this.upgrade().unwrap();
-        //     moved_dir.set_parent(Some(&dst_ref));
-        // }
 
         parent_dir.children.write().insert(String::from(dst_name), node);
 
