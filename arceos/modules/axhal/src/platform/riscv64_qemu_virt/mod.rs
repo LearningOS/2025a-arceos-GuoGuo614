@@ -18,6 +18,7 @@ extern "C" {
     fn rust_main_secondary(cpu_id: usize);
 }
 
+#[no_mangle]
 unsafe extern "C" fn rust_entry(cpu_id: usize, dtb: usize) {
     crate::mem::clear_bss();
     crate::cpu::init_primary(cpu_id);
