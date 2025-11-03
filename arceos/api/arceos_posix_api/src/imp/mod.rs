@@ -5,6 +5,7 @@ pub mod resources;
 pub mod sys;
 pub mod task;
 pub mod time;
+pub mod mm;
 
 #[cfg(feature = "fd")]
 pub mod fd_ops;
