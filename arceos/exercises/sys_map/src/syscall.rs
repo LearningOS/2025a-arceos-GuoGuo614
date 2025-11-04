@@ -24,6 +24,7 @@ const SYS_SET_TID_ADDRESS: usize = 96;
 const SYS_MMAP: usize = 222;
 
 const AT_FDCWD: i32 = -100;
+const USER_STACK_SIZE: usize = 0x10000;
 
 /// Macro to generate syscall body
 ///
@@ -162,7 +163,11 @@ fn sys_mmap(
     let mmap_flags = MmapFlags::from_bits_truncate(flags);
 
     let size = (length + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
-    let requested_va = VirtAddr::from(addr as usize).align_down_4k();
+    let requested_va = if !addr.is_null() {
+        VirtAddr::from(addr as usize).align_down_4k()
+    } else {
+        (aspace.end() - USER_STACK_SIZE - size).align_down_4k()
+    };
 
     // allocate the virtual range and establish mappings
     aspace.map_alloc(requested_va, size, map_flags, true);
@@ -172,7 +177,7 @@ fn sys_mmap(
         let mut tmp = vec![0u8; size];
         let mut total_read = 0usize;
 
-        while total_read < size {
+        while total_read < length {
             let slice = &mut tmp[total_read..];
             let n = api::sys_read(fd, slice.as_mut_ptr() as *mut c_void, slice.len());
             if n <= 0 {
