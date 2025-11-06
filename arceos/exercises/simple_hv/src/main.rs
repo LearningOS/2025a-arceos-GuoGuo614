@@ -16,8 +16,11 @@ mod csrs;
 mod sbi;
 mod loader;
 
+use core::fmt::Error;
+
 use vcpu::VmCpuRegisters;
 use riscv::register::{scause, sstatus, stval};
+use riscv::register::{htval, htinst};
 use csrs::defs::hstatus;
 use tock_registers::LocalRegisterCopy;
 use csrs::{RiscvCsrTrait, CSR};
@@ -25,7 +28,10 @@ use vcpu::_run_guest;
 use sbi::SbiMessage;
 use loader::load_vm_image;
 use axhal::mem::PhysAddr;
-use crate::regs::GprIndex::{A0, A1};
+use axhal::mem::PAGE_SIZE_4K;
+use crate::regs::GprIndex::{self, A0, A1};
+use axtask::{TaskExtRef, current};
+use axhal::paging::MappingFlags;
 
 const VM_ENTRY: usize = 0x8020_0000;
 
@@ -102,16 +108,23 @@ fn vmexit_handler(ctx: &mut VmCpuRegisters) -> bool {
             }
         },
         Trap::Exception(Exception::IllegalInstruction) => {
-            panic!("Bad instruction: {:#x} sepc: {:#x}",
+            ax_println!("Bad instruction: {:#x} sepc: {:#x}",
                 stval::read(),
                 ctx.guest_regs.sepc
             );
+            ctx.guest_regs.gprs.set_reg(A1, 0x1234);
+            ctx.guest_regs.sepc += 4;
         },
         Trap::Exception(Exception::LoadGuestPageFault) => {
-            panic!("LoadGuestPageFault: stval{:#x} sepc: {:#x}",
+            ax_println!("LoadGuestPageFault: stval: {:#x} sepc: {:#x}",
                 stval::read(),
                 ctx.guest_regs.sepc
             );
+            ax_println!("{:?}", ctx.trap_csrs);
+            ax_println!("htval: {}, htinst: {}", htval::read(), htinst::read());
+
+            ctx.guest_regs.gprs.set_reg(A0, 0x6688);
+            ctx.guest_regs.sepc += 4;
         },
         _ => {
             panic!(
